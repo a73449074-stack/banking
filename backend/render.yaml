@@ -1,11 +1,12 @@
 # Render Deployment Configuration for SecureBank Backend
+# This file should be in the backend directory
 services:
   - type: web
     name: securebank-backend
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -15,4 +16,4 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: https://securebank-frontend.vercel.app
-    healthCheckPath: /health
+    healthCheckPath: /api/health
