@@ -76,7 +76,7 @@ const Login: React.FC = () => {
               console.log('Login: No user data found, using fallback navigation');
               window.location.href = '/dashboard';
             }
-          }, 500); // Longer delay to ensure everything is ready
+          }, 100); // Faster navigation - just enough for auth state to update
           
           return; // Exit early to prevent setting loading to false
         } else {
@@ -114,7 +114,7 @@ const Login: React.FC = () => {
               console.log('Login: No user data found after registration, using fallback navigation');
               window.location.href = '/dashboard';
             }
-          }, 500); // Longer delay to ensure everything is ready
+          }, 100); // Faster navigation - just enough for auth state to update
           
           return; // Exit early to prevent setting loading to false
         } else {
