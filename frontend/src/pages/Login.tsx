@@ -24,8 +24,18 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login, register } = useAuth();
+  const { login, register, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Debug: Log authentication state changes
+  React.useEffect(() => {
+    console.log('Login: Auth state changed - isAuthenticated:', isAuthenticated, 'user:', user);
+    if (isAuthenticated && user) {
+      console.log('Login: User is authenticated, navigating to dashboard');
+      const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -40,33 +50,29 @@ const Login: React.FC = () => {
 
     try {
       if (isLogin) {
+        console.log('Login: Attempting login...');
         const success = await login(formData.email, formData.password);
-        if (success) {
-          // Navigate based on user role
-          const userData = JSON.parse(localStorage.getItem('user') || '{}');
-          if (userData.role === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
-          }
+        console.log('Login: Login result:', success);
+        if (!success) {
+          setError('Login failed');
         }
+        // Navigation will be handled by useEffect when auth state updates
       } else {
+        console.log('Login: Attempting registration...');
         const success = await register(
           formData.username,
           formData.email,
           formData.password,
           formData.role
         );
-        if (success) {
-          // Navigate based on user role
-          if (formData.role === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
-          }
+        console.log('Login: Registration result:', success);
+        if (!success) {
+          setError('Registration failed');
         }
+        // Navigation will be handled by useEffect when auth state updates
       }
     } catch (error: any) {
+      console.error('Login: Error during auth:', error);
       setError(error.message || 'Something went wrong');
     } finally {
       setLoading(false);
