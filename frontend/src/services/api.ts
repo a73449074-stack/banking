@@ -23,10 +23,34 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token expiration
+// Response interceptor to handle token expiration and backend wake-up
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Handle backend sleeping (503/504 errors or connection refused)
+    if (
+      (error.response?.status === 503 || 
+       error.response?.status === 504 || 
+       error.code === 'ECONNREFUSED' ||
+       error.message.includes('Network Error')) && 
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+      
+      // Show user-friendly message about backend waking up
+      if (typeof window !== 'undefined') {
+        // Import toast dynamically to avoid SSR issues
+        const { default: toast } = await import('react-hot-toast');
+        toast.loading('Backend is waking up, please wait...', { duration: 4000 });
+      }
+      
+      // Wait for backend to wake up and retry
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      return api(originalRequest);
+    }
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
