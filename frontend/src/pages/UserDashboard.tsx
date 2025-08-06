@@ -52,6 +52,7 @@ const UserDashboard: React.FC = () => {
   const { user, logout, updateBalance } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentBalance, setCurrentBalance] = useState<number>(0); // Local balance state to ensure UI updates
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<TransactionFormData>({
     type: 'deposit',
@@ -84,19 +85,25 @@ const UserDashboard: React.FC = () => {
   }, []); // Intentionally empty to prevent infinite loops
 
   const setupRealtimeListeners = useCallback(() => {
-    console.log('🔗 Setting up realtime listeners');
+    console.log('🔗 Setting up realtime listeners for user:', user?._id);
     
     // Clean up existing listeners first
     socketService.off('transactionUpdate');
     socketService.off('accountStatusChange');
     
+    // Verify Socket.IO connection
+    if (!socketService.isConnected()) {
+      console.warn('⚠️ Socket.IO not connected, attempting to connect...');
+      if (user?._id && user?.role) {
+        socketService.connect(user._id, user.role);
+      }
+    } else {
+      console.log('✅ Socket.IO is connected');
+    }
+    
     // Listen for new transactions from admin
     socketService.on('transactionUpdate', async (data: any) => {
       console.log('🔗 Received transactionUpdate:', data);
-      console.log('🔗 Current user balance before update:', user?.balance);
-      console.log('🔗 Received userBalance:', data.userBalance);
-      console.log('🔗 Action received:', data.action);
-      console.log('🔗 Transaction details:', data.transaction);
       
       // Show appropriate message based on action
       if (data.action === 'decline') {
@@ -105,20 +112,22 @@ const UserDashboard: React.FC = () => {
         toast.success(`Transaction ${data.transaction.type} of $${data.transaction.amount} was approved!`);
       }
       
-      // Update balance immediately if provided
-      if (data.userBalance !== undefined) {
-        console.log('💰 Updating balance from:', user?.balance, 'to:', data.userBalance);
+      // CRITICAL: Update balance immediately when transaction is approved/declined
+      if (data.userBalance !== undefined && typeof data.userBalance === 'number') {
+        console.log('💰 BALANCE UPDATE: From', user?.balance, 'to', data.userBalance);
         updateBalance(data.userBalance);
-        console.log('💰 Balance update completed');
-      } else {
-        console.warn('⚠️ No userBalance provided in Socket.IO data');
+        setCurrentBalance(data.userBalance); // Also update local state to force re-render
+        
+        // Force a small delay to ensure state updates
+        setTimeout(() => {
+          console.log('💰 BALANCE AFTER UPDATE:', user?.balance);
+        }, 100);
       }
       
       // Reload transactions to show updated status
       try {
         const response = await transactionAPI.getTransactions({ limit: 10 });
         setTransactions(response.transactions || []);
-        console.log('🔄 Transactions reloaded after balance update');
       } catch (error) {
         console.error('🔗 Failed to reload transactions:', error);
       }
@@ -143,6 +152,12 @@ const UserDashboard: React.FC = () => {
     if (!user) {
       console.log('❌ No user found, skipping data load');
       return;
+    }
+
+    // Sync local balance with user balance
+    if (user.balance !== undefined) {
+      setCurrentBalance(user.balance);
+      console.log('💰 Synced local balance with user balance:', user.balance);
     }
     
     // Only load data once when component mounts or user changes
@@ -180,6 +195,14 @@ const UserDashboard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id]); // Only depend on user ID to prevent infinite loops
 
+  // Sync local balance whenever user balance changes
+  useEffect(() => {
+    if (user?.balance !== undefined && user.balance !== currentBalance) {
+      console.log('💰 User balance changed, syncing local balance:', user.balance);
+      setCurrentBalance(user.balance);
+    }
+  }, [user?.balance, currentBalance]);
+
   // Manual refresh function that doesn't cause re-renders
   const handleRefresh = async () => {
     console.log('🔄 Manual refresh triggered');
@@ -198,6 +221,7 @@ const UserDashboard: React.FC = () => {
       if (userResponse.user?.balance !== undefined) {
         console.log('💰 Refreshing balance from:', user?.balance, 'to:', userResponse.user.balance);
         updateBalance(userResponse.user.balance);
+        setCurrentBalance(userResponse.user.balance); // Also update local state
       }
       
       toast.success('Account refreshed successfully');
@@ -311,7 +335,7 @@ const UserDashboard: React.FC = () => {
         <Logo>SecureBank</Logo>
         <UserInfo>
           <UserName>Welcome, {user?.username}</UserName>
-          <Balance>Balance: ${user?.balance?.toFixed(2) || '0.00'}</Balance>
+          <Balance>Balance: ${currentBalance.toFixed(2)}</Balance>
           <Button variant="secondary" onClick={logout}>
             <LogOut size={16} style={{ marginRight: '8px' }} />
             Logout
