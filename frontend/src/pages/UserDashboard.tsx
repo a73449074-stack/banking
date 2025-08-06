@@ -128,7 +128,7 @@ const UserDashboard: React.FC = () => {
       socketService.off('transactionUpdate');
       socketService.off('accountStatusChange');
     };
-  }, [updateBalance]); // Removed loadTransactions dependency to prevent infinite loops
+  }, [updateBalance, user?.balance]); // Added user?.balance dependency for ESLint
 
   useEffect(() => {
     console.log('🔥🔥🔥 UserDashboard useEffect TRIGGERED 🔥🔥🔥');
