@@ -80,6 +80,9 @@ const AdminDashboard: React.FC = () => {
   };
 
   const loadDashboardData = async () => {
+    console.log('🔄 Admin Dashboard: Loading data...');
+    setLoading(true);
+    
     try {
       const [statsResponse, transactionsResponse, usersResponse] = await Promise.all([
         adminAPI.getDashboardStats(),
@@ -90,7 +93,11 @@ const AdminDashboard: React.FC = () => {
       setStats(statsResponse);
       setPendingTransactions(transactionsResponse.transactions);
       setUsers(usersResponse.users);
+      
+      console.log('🔄 Admin Dashboard: Data loaded successfully');
+      toast.success('Dashboard refreshed');
     } catch (error: any) {
+      console.error('🔄 Admin Dashboard: Load error:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);

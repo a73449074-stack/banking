@@ -78,21 +78,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   const setupSocketListeners = useCallback(() => {
+    // Clean up existing listeners first to prevent duplicates
+    socketService.off('transactionUpdate');
+    socketService.off('accountStatusChange');
+    
     // Listen for transaction updates
     socketService.on('transactionUpdate', (data: any) => {
+      console.log('AuthContext: Received transactionUpdate:', data);
+      
       if (data.userBalance !== undefined) {
         dispatch({ type: 'UPDATE_BALANCE', payload: data.userBalance });
       }
       
+      // Only show toast for approved transactions (decline messages handled in UserDashboard)
       if (data.action === 'approve') {
-        toast.success(`Transaction ${data.action}d! Your balance has been updated.`);
-      } else if (data.action === 'decline') {
-        toast.error(`Transaction ${data.action}d by admin.`);
+        toast.success(`Transaction approved! Your balance has been updated.`);
       }
     });
 
     // Listen for account status changes
     socketService.on('accountStatusChange', (data: any) => {
+      console.log('AuthContext: Received accountStatusChange:', data);
+      
       if (data.isFrozen) {
         toast.error(data.message || 'Your account has been frozen');
       } else {

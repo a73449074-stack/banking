@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { transactionAPI, Transaction } from '../services/api';
+import { transactionAPI, authAPI, Transaction } from '../services/api';
 import socketService from '../services/socket';
 import { LogOut, Plus, RefreshCw } from 'lucide-react';
 import {
@@ -93,16 +93,27 @@ const UserDashboard: React.FC = () => {
     // Listen for new transactions from admin
     socketService.on('transactionUpdate', async (data: any) => {
       console.log('🔗 Received transactionUpdate:', data);
-      // Directly reload transactions without using the callback
+      
+      // Show appropriate message based on action
+      if (data.action === 'decline') {
+        toast.error(`Transaction ${data.transaction.type} of $${data.transaction.amount} was declined by admin`);
+      } else if (data.action === 'approve') {
+        toast.success(`Transaction ${data.transaction.type} of $${data.transaction.amount} was approved!`);
+      }
+      
+      // Update balance immediately if provided
+      if (data.userBalance !== undefined) {
+        console.log('💰 Updating balance from:', user?.balance, 'to:', data.userBalance);
+        updateBalance(data.userBalance);
+      }
+      
+      // Reload transactions to show updated status
       try {
         const response = await transactionAPI.getTransactions({ limit: 10 });
         setTransactions(response.transactions || []);
+        console.log('🔄 Transactions reloaded after balance update');
       } catch (error) {
         console.error('🔗 Failed to reload transactions:', error);
-      }
-      
-      if (data.userBalance !== undefined) {
-        updateBalance(data.userBalance);
       }
     });
 
@@ -167,12 +178,25 @@ const UserDashboard: React.FC = () => {
     console.log('🔄 Manual refresh triggered');
     try {
       setLoading(true);
-      const response = await transactionAPI.getTransactions({ limit: 10 });
-      setTransactions(response.transactions || []);
-      toast.success('Transactions refreshed');
+      
+      // Refresh both transactions and user balance
+      const [transactionsResponse, userResponse] = await Promise.all([
+        transactionAPI.getTransactions({ limit: 10 }),
+        authAPI.getMe()
+      ]);
+      
+      setTransactions(transactionsResponse.transactions || []);
+      
+      // Update balance if it has changed
+      if (userResponse.user?.balance !== undefined) {
+        console.log('💰 Refreshing balance from:', user?.balance, 'to:', userResponse.user.balance);
+        updateBalance(userResponse.user.balance);
+      }
+      
+      toast.success('Account refreshed successfully');
     } catch (error) {
-      console.error('❌ Failed to refresh transactions:', error);
-      toast.error('Failed to refresh transactions');
+      console.error('❌ Failed to refresh data:', error);
+      toast.error('Failed to refresh account data');
     } finally {
       setLoading(false);
     }
