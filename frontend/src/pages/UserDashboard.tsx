@@ -93,6 +93,10 @@ const UserDashboard: React.FC = () => {
     // Listen for new transactions from admin
     socketService.on('transactionUpdate', async (data: any) => {
       console.log('🔗 Received transactionUpdate:', data);
+      console.log('🔗 Current user balance before update:', user?.balance);
+      console.log('🔗 Received userBalance:', data.userBalance);
+      console.log('🔗 Action received:', data.action);
+      console.log('🔗 Transaction details:', data.transaction);
       
       // Show appropriate message based on action
       if (data.action === 'decline') {
@@ -105,6 +109,9 @@ const UserDashboard: React.FC = () => {
       if (data.userBalance !== undefined) {
         console.log('💰 Updating balance from:', user?.balance, 'to:', data.userBalance);
         updateBalance(data.userBalance);
+        console.log('💰 Balance update completed');
+      } else {
+        console.warn('⚠️ No userBalance provided in Socket.IO data');
       }
       
       // Reload transactions to show updated status

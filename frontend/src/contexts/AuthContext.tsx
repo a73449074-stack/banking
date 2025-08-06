@@ -51,10 +51,14 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
     case 'UPDATE_USER':
       return { ...state, user: action.payload };
     case 'UPDATE_BALANCE':
-      return {
+      console.log('🏦 Reducer: UPDATE_BALANCE action received with payload:', action.payload);
+      console.log('🏦 Reducer: Current state.user:', state.user);
+      const updatedState = {
         ...state,
         user: state.user ? { ...state.user, balance: action.payload } : null,
       };
+      console.log('🏦 Reducer: New state after balance update:', updatedState);
+      return updatedState;
     default:
       return state;
   }
@@ -242,7 +246,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const updateBalance = (balance: number) => {
+    console.log('🏦 AuthContext: updateBalance called with:', balance);
+    console.log('🏦 AuthContext: Current user before update:', state.user);
     dispatch({ type: 'UPDATE_BALANCE', payload: balance });
+    console.log('🏦 AuthContext: UPDATE_BALANCE dispatched');
   };
 
   const value: AuthContextType = {
