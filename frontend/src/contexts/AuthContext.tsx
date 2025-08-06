@@ -111,36 +111,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       console.log('AuthContext: Starting initialization...');
-      const token = localStorage.getItem('authToken');
-      const userData = localStorage.getItem('user');
+      
+      try {
+        const token = localStorage.getItem('authToken');
+        const userData = localStorage.getItem('user');
 
-      if (token && userData) {
-        try {
-          const user = JSON.parse(userData);
-          console.log('AuthContext: Found existing auth data, user:', user.username);
-          dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
-          
-          // Connect to socket - use _id which is the primary MongoDB identifier
-          const userId = user._id || user.id;
-          console.log('AuthContext: Connecting socket with userId:', userId, 'role:', user.role);
-          socketService.connect(userId, user.role);
-          
-          // Setup socket listeners for real-time updates
-          setupSocketListeners();
-          
-        } catch (error) {
-          console.error('AuthContext: Failed to initialize auth:', error);
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
+        if (token && userData) {
+          try {
+            const user = JSON.parse(userData);
+            console.log('AuthContext: Found existing auth data, user:', user.username);
+            dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+            
+            // Connect to socket - use _id which is the primary MongoDB identifier
+            const userId = user._id || user.id;
+            console.log('AuthContext: Connecting socket with userId:', userId, 'role:', user.role);
+            socketService.connect(userId, user.role);
+            
+            // Setup socket listeners for real-time updates
+            setupSocketListeners();
+            
+          } catch (error) {
+            console.error('AuthContext: Failed to parse user data:', error);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            dispatch({ type: 'LOGIN_FAILURE' });
+          }
+        } else {
+          console.log('AuthContext: No existing auth data found');
           dispatch({ type: 'LOGIN_FAILURE' });
         }
-      } else {
-        console.log('AuthContext: No existing auth data found');
+      } catch (error) {
+        console.error('AuthContext: Initialization error:', error);
         dispatch({ type: 'LOGIN_FAILURE' });
       }
+      
+      console.log('AuthContext: Initialization completed');
     };
 
-    // Initialize immediately without waiting
+    // Initialize immediately
     initializeAuth();
   }, [setupSocketListeners]);
 
