@@ -137,6 +137,7 @@ const UserDashboard: React.FC = () => {
     
     loadInitialData();
     setupRealtimeListeners();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id, setupRealtimeListeners]); // Only re-run when user ID changes to prevent loops
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
