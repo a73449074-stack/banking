@@ -37,7 +37,20 @@ const Login: React.FC = () => {
       console.log('Login: User already authenticated, redirecting...');
       const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
       console.log('Login: Redirecting to:', redirectPath);
-      navigate(redirectPath, { replace: true });
+      
+      // Use more reliable navigation for mobile
+      try {
+        navigate(redirectPath, { replace: true });
+        // Fallback for mobile browsers
+        setTimeout(() => {
+          if (window.location.pathname === '/login') {
+            window.location.replace(redirectPath);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Navigation error:', error);
+        window.location.replace(redirectPath);
+      }
     }
   }, [isAuthenticated, user, loading, navigate]);
 
@@ -61,7 +74,7 @@ const Login: React.FC = () => {
         if (success) {
           console.log('Login: Login successful, preparing to navigate...');
           
-          // Wait a brief moment for the auth context to update, then navigate
+          // More reliable navigation for mobile devices
           setTimeout(() => {
             const userData = localStorage.getItem('user');
             if (userData) {
@@ -70,18 +83,32 @@ const Login: React.FC = () => {
                 const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
                 console.log('Login: Navigating to:', redirectPath, 'for user:', user.username);
                 
-                // Use window.location for more reliable navigation
-                window.location.href = redirectPath;
+                // Try React Router first, then fallback to window methods
+                try {
+                  navigate(redirectPath, { replace: true });
+                  console.log('Login: React Router navigation attempted');
+                  
+                  // Verify navigation worked after a short delay
+                  setTimeout(() => {
+                    if (window.location.pathname === '/login') {
+                      console.log('Login: React Router failed, using window.location.replace');
+                      window.location.replace(redirectPath);
+                    }
+                  }, 300);
+                } catch (navError) {
+                  console.error('Login: React Router navigation failed:', navError);
+                  window.location.replace(redirectPath);
+                }
               } catch (e) {
                 console.error('Login: Error parsing user data:', e);
                 // Fallback navigation
-                window.location.href = '/dashboard';
+                window.location.replace('/dashboard');
               }
             } else {
               console.log('Login: No user data found, using fallback navigation');
-              window.location.href = '/dashboard';
+              window.location.replace('/dashboard');
             }
-          }, 100); // Small delay to ensure auth context is updated
+          }, 200); // Slightly longer delay for mobile
           
           return; // Exit early to prevent setting loading to false
         } else {
@@ -100,7 +127,7 @@ const Login: React.FC = () => {
         if (success) {
           console.log('Login: Registration successful, preparing to navigate...');
           
-          // Wait a brief moment for the auth context to update, then navigate
+          // More reliable navigation for mobile devices
           setTimeout(() => {
             const userData = localStorage.getItem('user');
             if (userData) {
@@ -109,18 +136,32 @@ const Login: React.FC = () => {
                 const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
                 console.log('Login: Navigating after registration to:', redirectPath, 'for user:', user.username);
                 
-                // Use window.location for more reliable navigation
-                window.location.href = redirectPath;
+                // Try React Router first, then fallback to window methods
+                try {
+                  navigate(redirectPath, { replace: true });
+                  console.log('Login: React Router navigation attempted after registration');
+                  
+                  // Verify navigation worked after a short delay
+                  setTimeout(() => {
+                    if (window.location.pathname === '/login') {
+                      console.log('Login: React Router failed after registration, using window.location.replace');
+                      window.location.replace(redirectPath);
+                    }
+                  }, 300);
+                } catch (navError) {
+                  console.error('Login: React Router navigation failed after registration:', navError);
+                  window.location.replace(redirectPath);
+                }
               } catch (e) {
                 console.error('Login: Error parsing user data after registration:', e);
                 // Fallback navigation
-                window.location.href = '/dashboard';
+                window.location.replace('/dashboard');
               }
             } else {
               console.log('Login: No user data found after registration, using fallback navigation');
-              window.location.href = '/dashboard';
+              window.location.replace('/dashboard');
             }
-          }, 100); // Small delay to ensure auth context is updated
+          }, 200); // Slightly longer delay for mobile
           
           return; // Exit early to prevent setting loading to false
         } else {

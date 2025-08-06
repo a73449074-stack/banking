@@ -110,12 +110,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      console.log('AuthContext: Starting initialization...');
       const token = localStorage.getItem('authToken');
       const userData = localStorage.getItem('user');
 
       if (token && userData) {
         try {
           const user = JSON.parse(userData);
+          console.log('AuthContext: Found existing auth data, user:', user.username);
           dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
           
           // Connect to socket - use _id which is the primary MongoDB identifier
@@ -127,16 +129,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setupSocketListeners();
           
         } catch (error) {
-          console.error('Failed to initialize auth:', error);
+          console.error('AuthContext: Failed to initialize auth:', error);
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');
           dispatch({ type: 'LOGIN_FAILURE' });
         }
       } else {
+        console.log('AuthContext: No existing auth data found');
         dispatch({ type: 'LOGIN_FAILURE' });
       }
     };
 
+    // Initialize immediately without waiting
     initializeAuth();
   }, [setupSocketListeners]);
 
