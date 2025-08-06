@@ -80,10 +80,24 @@ const Login: React.FC = () => {
         console.log('Login: Attempting login...');
         const success = await login(formData.email, formData.password);
         console.log('Login: Login result:', success);
-        if (!success) {
-          setError('Login failed');
+        
+        if (success) {
+          // Get the updated user from localStorage immediately after successful login
+          const userData = localStorage.getItem('user');
+          if (userData) {
+            try {
+              const user = JSON.parse(userData);
+              const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
+              console.log('Login: Immediate redirect to:', redirectPath, 'for user:', user.username);
+              navigate(redirectPath, { replace: true });
+              return; // Exit early to prevent further execution
+            } catch (e) {
+              console.error('Login: Error parsing user data for immediate redirect:', e);
+            }
+          }
+        } else {
+          setError('Login failed - invalid credentials');
         }
-        // Navigation will be handled by useEffect when auth state updates
       } else {
         console.log('Login: Attempting registration...');
         const success = await register(
@@ -93,10 +107,24 @@ const Login: React.FC = () => {
           formData.role
         );
         console.log('Login: Registration result:', success);
-        if (!success) {
+        
+        if (success) {
+          // Get the updated user from localStorage immediately after successful registration
+          const userData = localStorage.getItem('user');
+          if (userData) {
+            try {
+              const user = JSON.parse(userData);
+              const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
+              console.log('Login: Immediate redirect after registration to:', redirectPath, 'for user:', user.username);
+              navigate(redirectPath, { replace: true });
+              return; // Exit early to prevent further execution
+            } catch (e) {
+              console.error('Login: Error parsing user data for immediate redirect after registration:', e);
+            }
+          }
+        } else {
           setError('Registration failed');
         }
-        // Navigation will be handled by useEffect when auth state updates
       }
     } catch (error: any) {
       console.error('Login: Error during auth:', error);

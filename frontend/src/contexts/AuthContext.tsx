@@ -143,15 +143,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       dispatch({ type: 'LOGIN_START' });
+      console.log('AuthContext: Starting login process...');
+      
       const response = await authAPI.login({ email, password });
+      console.log('AuthContext: Login API response received:', response);
       
       const { user, token } = response;
       
-      // Store in localStorage
+      // Store in localStorage first
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
+      console.log('AuthContext: Auth data stored in localStorage');
       
+      // Then dispatch to update context state
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+      console.log('AuthContext: Login success dispatched, user:', user.username, 'role:', user.role);
       
       // Connect to socket - use _id which is the primary MongoDB identifier
       const userId = user._id || user.id;
@@ -159,9 +165,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       socketService.connect(userId, user.role);
       setupSocketListeners();
       
-      toast.success('Login successful!');
+      toast.success(`Welcome back, ${user.username}!`);
+      console.log('AuthContext: Login process completed successfully');
       return true;
     } catch (error: any) {
+      console.error('AuthContext: Login failed:', error);
       dispatch({ type: 'LOGIN_FAILURE' });
       toast.error(error.response?.data?.error || 'Login failed');
       return false;
@@ -175,15 +183,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     role: 'user' | 'admin' = 'user'
   ): Promise<boolean> => {
     try {
+      console.log('AuthContext: Starting registration process...');
       const response = await authAPI.register({ username, email, password, role });
+      console.log('AuthContext: Registration API response received:', response);
       
       const { user, token } = response;
       
-      // Store in localStorage
+      // Store in localStorage first
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
+      console.log('AuthContext: Registration auth data stored in localStorage');
       
+      // Then dispatch to update context state
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+      console.log('AuthContext: Registration success dispatched, user:', user.username, 'role:', user.role);
       
       // Connect to socket - use _id which is the primary MongoDB identifier
       const userId = user._id || user.id;
@@ -191,9 +204,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       socketService.connect(userId, user.role);
       setupSocketListeners();
       
-      toast.success('Registration successful!');
+      toast.success(`Welcome to SecureBank, ${user.username}!`);
+      console.log('AuthContext: Registration process completed successfully');
       return true;
     } catch (error: any) {
+      console.error('AuthContext: Registration failed:', error);
       toast.error(error.response?.data?.error || 'Registration failed');
       return false;
     }
