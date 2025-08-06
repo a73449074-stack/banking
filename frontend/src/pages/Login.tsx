@@ -33,9 +33,36 @@ const Login: React.FC = () => {
     if (isAuthenticated && user) {
       console.log('Login: User is authenticated, navigating to dashboard');
       const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
+      console.log('Login: Redirecting to:', redirectPath);
       navigate(redirectPath, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
+
+  // Additional check in case the auth state doesn't update properly
+  React.useEffect(() => {
+    const checkAuthState = () => {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('user');
+      
+      if (token && userData && !user) {
+        console.log('Login: Found auth data in localStorage but context not updated');
+        try {
+          const parsedUser = JSON.parse(userData);
+          const redirectPath = parsedUser.role === 'admin' ? '/admin' : '/dashboard';
+          console.log('Login: Force redirecting to:', redirectPath);
+          navigate(redirectPath, { replace: true });
+        } catch (e) {
+          console.error('Login: Error parsing user data:', e);
+        }
+      }
+    };
+
+    // Check immediately and after a short delay
+    checkAuthState();
+    const timeout = setTimeout(checkAuthState, 1000);
+    
+    return () => clearTimeout(timeout);
+  }, [user, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

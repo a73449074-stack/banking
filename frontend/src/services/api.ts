@@ -29,22 +29,27 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    console.log('API Error:', {
+    console.log('API Error Details:', {
       status: error.response?.status,
       code: error.code,
       message: error.message,
       url: originalRequest?.url,
-      retry: originalRequest._retry
+      retry: originalRequest._retry,
+      hasResponse: !!error.response,
+      responseData: error.response?.data
     });
     
     // Handle backend sleeping (503/504 errors or connection refused) - but only retry once
+    // Don't retry on 403 (forbidden) or 401 (unauthorized) as these are permission issues
     if (
       (error.response?.status === 503 || 
        error.response?.status === 504 || 
-       error.code === 'ECONNREFUSED' ||
-       error.code === 'ERR_NETWORK' ||
-       error.message.includes('Network Error')) && 
-      !originalRequest._retry
+       (error.code === 'ECONNREFUSED' && !error.response) ||
+       (error.code === 'ERR_NETWORK' && !error.response) ||
+       (error.message.includes('Network Error') && !error.response)) && 
+      !originalRequest._retry &&
+      error.response?.status !== 401 &&
+      error.response?.status !== 403
     ) {
       originalRequest._retry = true;
       
