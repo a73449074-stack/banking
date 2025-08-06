@@ -65,27 +65,42 @@ const UserDashboard: React.FC = () => {
 
   const loadTransactions = useCallback(async () => {
     console.log('📊📊📊 loadTransactions function called 📊📊📊');
-    console.log('📊 Current user:', user);
-    console.log('📊 Token in localStorage:', localStorage.getItem('authToken') ? 'Present' : 'Missing');
+    
+    if (!user?._id) {
+      console.log('📊 No user ID available, skipping transaction load');
+      return;
+    }
     
     try {
       console.log('📊 Starting transaction load...');
       const response = await transactionAPI.getTransactions({ limit: 10 });
       console.log('📊 Transactions response received:', response);
-      setTransactions(response.transactions);
-      console.log('📊 Transactions set to state:', response.transactions);
+      setTransactions(response.transactions || []);
     } catch (error: any) {
       console.error('📊 Transaction loading error:', error);
-      console.error('📊 Error details:', error.response?.data);
       toast.error('Failed to load transactions');
     }
-    // Don't set loading to false here - let the useEffect handle it
-  }, [user]); // Removed 'loading' from dependencies to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally empty to prevent infinite loops
 
   const setupRealtimeListeners = useCallback(() => {
+    console.log('🔗 Setting up realtime listeners');
+    
+    // Clean up existing listeners first
+    socketService.off('transactionUpdate');
+    socketService.off('accountStatusChange');
+    
     // Listen for new transactions from admin
-    socketService.on('transactionUpdate', (data: any) => {
-      loadTransactions(); // Refresh transactions
+    socketService.on('transactionUpdate', async (data: any) => {
+      console.log('🔗 Received transactionUpdate:', data);
+      // Directly reload transactions without using the callback
+      try {
+        const response = await transactionAPI.getTransactions({ limit: 10 });
+        setTransactions(response.transactions || []);
+      } catch (error) {
+        console.error('🔗 Failed to reload transactions:', error);
+      }
+      
       if (data.userBalance !== undefined) {
         updateBalance(data.userBalance);
       }
@@ -93,9 +108,16 @@ const UserDashboard: React.FC = () => {
 
     // Listen for account status changes
     socketService.on('accountStatusChange', (data: any) => {
+      console.log('🔗 Received accountStatusChange:', data);
       toast(data.message);
     });
-  }, [updateBalance, loadTransactions]);
+
+    return () => {
+      // Cleanup function
+      socketService.off('transactionUpdate');
+      socketService.off('accountStatusChange');
+    };
+  }, [updateBalance]); // Removed loadTransactions dependency to prevent infinite loops
 
   useEffect(() => {
     console.log('🔥🔥🔥 UserDashboard useEffect TRIGGERED 🔥🔥🔥');
@@ -138,7 +160,23 @@ const UserDashboard: React.FC = () => {
     loadInitialData();
     setupRealtimeListeners();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?._id, setupRealtimeListeners]); // Only re-run when user ID changes to prevent loops
+  }, [user?._id]); // Only depend on user ID to prevent infinite loops
+
+  // Manual refresh function that doesn't cause re-renders
+  const handleRefresh = async () => {
+    console.log('🔄 Manual refresh triggered');
+    try {
+      setLoading(true);
+      const response = await transactionAPI.getTransactions({ limit: 10 });
+      setTransactions(response.transactions || []);
+      toast.success('Transactions refreshed');
+    } catch (error) {
+      console.error('❌ Failed to refresh transactions:', error);
+      toast.error('Failed to refresh transactions');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -270,7 +308,7 @@ const UserDashboard: React.FC = () => {
           <TransactionHeader>
             <TransactionTitle>Recent Transactions</TransactionTitle>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <Button onClick={() => loadTransactions()}>
+              <Button onClick={handleRefresh}>
                 <RefreshCw size={16} style={{ marginRight: '8px' }} />
                 Refresh
               </Button>
