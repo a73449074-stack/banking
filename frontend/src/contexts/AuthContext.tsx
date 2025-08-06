@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
 import { User, authAPI } from '../services/api';
 import socketService from '../services/socket';
 import toast from 'react-hot-toast';
@@ -77,6 +77,37 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  const setupSocketListeners = useCallback(() => {
+    // Listen for transaction updates
+    socketService.on('transactionUpdate', (data: any) => {
+      if (data.userBalance !== undefined) {
+        dispatch({ type: 'UPDATE_BALANCE', payload: data.userBalance });
+      }
+      
+      if (data.action === 'approve') {
+        toast.success(`Transaction ${data.action}d! Your balance has been updated.`);
+      } else if (data.action === 'decline') {
+        toast.error(`Transaction ${data.action}d by admin.`);
+      }
+    });
+
+    // Listen for account status changes
+    socketService.on('accountStatusChange', (data: any) => {
+      if (data.isFrozen) {
+        toast.error(data.message || 'Your account has been frozen');
+      } else {
+        toast.success(data.message || 'Your account has been unfrozen');
+      }
+      
+      if (state.user) {
+        dispatch({ 
+          type: 'UPDATE_USER', 
+          payload: { ...state.user, isFrozen: data.isFrozen } 
+        });
+      }
+    });
+  }, [dispatch, state.user]);
+
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem('authToken');
@@ -107,38 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
-  }, []);
-
-  const setupSocketListeners = () => {
-    // Listen for transaction updates
-    socketService.on('transactionUpdate', (data: any) => {
-      if (data.userBalance !== undefined) {
-        dispatch({ type: 'UPDATE_BALANCE', payload: data.userBalance });
-      }
-      
-      if (data.action === 'approve') {
-        toast.success(`Transaction ${data.action}d! Your balance has been updated.`);
-      } else if (data.action === 'decline') {
-        toast.error(`Transaction ${data.action}d by admin.`);
-      }
-    });
-
-    // Listen for account status changes
-    socketService.on('accountStatusChange', (data: any) => {
-      if (data.isFrozen) {
-        toast.error(data.message || 'Your account has been frozen');
-      } else {
-        toast.success(data.message || 'Your account has been unfrozen');
-      }
-      
-      if (state.user) {
-        dispatch({ 
-          type: 'UPDATE_USER', 
-          payload: { ...state.user, isFrozen: data.isFrozen } 
-        });
-      }
-    });
-  };
+  }, [setupSocketListeners]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {

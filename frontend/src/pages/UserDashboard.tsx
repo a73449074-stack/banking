@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { transactionAPI, Transaction } from '../services/api';
 import socketService from '../services/socket';
@@ -62,6 +62,21 @@ const UserDashboard: React.FC = () => {
   });
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const setupRealtimeListeners = useCallback(() => {
+    // Listen for new transactions from admin
+    socketService.on('transactionUpdate', (data: any) => {
+      loadTransactions(); // Refresh transactions
+      if (data.userBalance !== undefined) {
+        updateBalance(data.userBalance);
+      }
+    });
+
+    // Listen for account status changes
+    socketService.on('accountStatusChange', (data: any) => {
+      toast(data.message);
+    });
+  }, [updateBalance]);
 
   useEffect(() => {
     console.log('🔥🔥🔥 UserDashboard useEffect TRIGGERED 🔥🔥🔥');
@@ -129,22 +144,7 @@ const UserDashboard: React.FC = () => {
     
     forceLoad();
     setupRealtimeListeners();
-  }, []);
-
-  const setupRealtimeListeners = () => {
-    // Listen for new transactions from admin
-    socketService.on('transactionUpdate', (data: any) => {
-      loadTransactions(); // Refresh transactions
-      if (data.userBalance !== undefined) {
-        updateBalance(data.userBalance);
-      }
-    });
-
-    // Listen for account status changes
-    socketService.on('accountStatusChange', (data: any) => {
-      toast(data.message);
-    });
-  };
+  }, [user, setupRealtimeListeners]);
 
   const loadTransactions = async () => {
     console.log('📊📊📊 loadTransactions function called 📊📊📊');
@@ -255,7 +255,6 @@ const UserDashboard: React.FC = () => {
   };
 
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
-  const completedTransactions = transactions.filter(t => t.status !== 'pending');
 
   if (loading) {
     return (
