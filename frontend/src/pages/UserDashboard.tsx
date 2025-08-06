@@ -137,7 +137,7 @@ const UserDashboard: React.FC = () => {
     
     loadInitialData();
     setupRealtimeListeners();
-  }, [user, setupRealtimeListeners]); // Include user to satisfy ESLint
+  }, [user?._id, setupRealtimeListeners]); // Only re-run when user ID changes to prevent loops
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

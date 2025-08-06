@@ -23,7 +23,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token expiration and backend wake-up
+// Response interceptor to handle token expiration
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -34,63 +34,11 @@ api.interceptors.response.use(
       code: error.code,
       message: error.message,
       url: originalRequest?.url,
-      retry: originalRequest._retry,
       hasResponse: !!error.response,
       responseData: error.response?.data
     });
     
-    // Handle backend sleeping (503/504 errors or connection refused) - but only retry once
-    // Don't retry on 403 (forbidden) or 401 (unauthorized) as these are permission issues
-    if (
-      (error.response?.status === 503 || 
-       error.response?.status === 504 || 
-       (error.code === 'ECONNREFUSED' && !error.response) ||
-       (error.code === 'ERR_NETWORK' && !error.response) ||
-       (error.message.includes('Network Error') && !error.response)) && 
-      !originalRequest._retry &&
-      error.response?.status !== 401 &&
-      error.response?.status !== 403
-    ) {
-      originalRequest._retry = true;
-      
-      console.log('Backend appears to be sleeping, attempting wake-up...');
-      
-      // Show user-friendly message about backend waking up
-      if (typeof window !== 'undefined') {
-        const { default: toast } = await import('react-hot-toast');
-        toast.loading('Backend is waking up, please wait...', { 
-          id: 'backend-wakeup',
-          duration: 10000 
-        });
-      }
-      
-      // Wait for backend to wake up and retry ONCE
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      try {
-        const retryResponse = await api(originalRequest);
-        // Dismiss the loading toast on success
-        if (typeof window !== 'undefined') {
-          const { default: toast } = await import('react-hot-toast');
-          toast.dismiss('backend-wakeup');
-          toast.success('Connected to backend!');
-        }
-        return retryResponse;
-      } catch (retryError) {
-        // If retry fails, show a more helpful error and DON'T retry again
-        console.error('Retry failed:', retryError);
-        if (typeof window !== 'undefined') {
-          const { default: toast } = await import('react-hot-toast');
-          toast.dismiss('backend-wakeup');
-          toast.error('Backend is still starting up. Please try again in a minute.', {
-            duration: 6000
-          });
-        }
-        return Promise.reject(retryError);
-      }
-    }
-    
-    // Handle 401 unauthorized
+    // Handle 401 unauthorized - redirect to login
     if (error.response?.status === 401) {
       console.log('401 Unauthorized - clearing auth data');
       localStorage.removeItem('authToken');
@@ -98,6 +46,7 @@ api.interceptors.response.use(
       window.location.href = '/login';
     }
     
+    // Handle other errors without retry to prevent infinite loops
     return Promise.reject(error);
   }
 );
