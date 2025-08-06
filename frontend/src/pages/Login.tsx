@@ -38,17 +38,27 @@ const Login: React.FC = () => {
       const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
       console.log('Login: Redirecting to:', redirectPath);
       
-      // Use more reliable navigation for mobile
+      // Mobile-optimized navigation for already authenticated users
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
       try {
-        navigate(redirectPath, { replace: true });
-        // Fallback for mobile browsers
-        setTimeout(() => {
-          if (window.location.pathname === '/login') {
-            window.location.replace(redirectPath);
-          }
-        }, 100);
+        if (isMobile) {
+          console.log('Login: Mobile device detected (already auth), using location.replace');
+          window.location.replace(redirectPath);
+        } else {
+          console.log('Login: Desktop device (already auth), trying React Router first');
+          navigate(redirectPath, { replace: true });
+          
+          // Fallback for desktop
+          setTimeout(() => {
+            if (window.location.pathname === '/login') {
+              console.log('Login: Desktop fallback for already authenticated user');
+              window.location.replace(redirectPath);
+            }
+          }, 100);
+        }
       } catch (error) {
-        console.error('Navigation error:', error);
+        console.error('Navigation error for already authenticated user:', error);
         window.location.replace(redirectPath);
       }
     }
@@ -83,20 +93,30 @@ const Login: React.FC = () => {
                 const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
                 console.log('Login: Navigating to:', redirectPath, 'for user:', user.username);
                 
-                // Try React Router first, then fallback to window methods
+                // Mobile-optimized navigation - more aggressive approach for Android
                 try {
-                  navigate(redirectPath, { replace: true });
-                  console.log('Login: React Router navigation attempted');
+                  console.log('Login: Attempting mobile-optimized navigation');
                   
-                  // Verify navigation worked after a short delay
-                  setTimeout(() => {
-                    if (window.location.pathname === '/login') {
-                      console.log('Login: React Router failed, using window.location.replace');
-                      window.location.replace(redirectPath);
-                    }
-                  }, 300);
+                  // For Android and mobile browsers, use location.replace immediately
+                  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                  
+                  if (isMobile) {
+                    console.log('Login: Mobile device detected, using location.replace');
+                    window.location.replace(redirectPath);
+                  } else {
+                    console.log('Login: Desktop device, trying React Router first');
+                    navigate(redirectPath, { replace: true });
+                    
+                    // Fallback check for desktop
+                    setTimeout(() => {
+                      if (window.location.pathname === '/login') {
+                        console.log('Login: Desktop React Router failed, using location.replace');
+                        window.location.replace(redirectPath);
+                      }
+                    }, 200);
+                  }
                 } catch (navError) {
-                  console.error('Login: React Router navigation failed:', navError);
+                  console.error('Login: All navigation methods failed:', navError);
                   window.location.replace(redirectPath);
                 }
               } catch (e) {
@@ -136,20 +156,30 @@ const Login: React.FC = () => {
                 const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
                 console.log('Login: Navigating after registration to:', redirectPath, 'for user:', user.username);
                 
-                // Try React Router first, then fallback to window methods
+                // Mobile-optimized navigation - more aggressive approach for Android
                 try {
-                  navigate(redirectPath, { replace: true });
-                  console.log('Login: React Router navigation attempted after registration');
+                  console.log('Login: Attempting mobile-optimized navigation after registration');
                   
-                  // Verify navigation worked after a short delay
-                  setTimeout(() => {
-                    if (window.location.pathname === '/login') {
-                      console.log('Login: React Router failed after registration, using window.location.replace');
-                      window.location.replace(redirectPath);
-                    }
-                  }, 300);
+                  // For Android and mobile browsers, use location.replace immediately
+                  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                  
+                  if (isMobile) {
+                    console.log('Login: Mobile device detected after registration, using location.replace');
+                    window.location.replace(redirectPath);
+                  } else {
+                    console.log('Login: Desktop device after registration, trying React Router first');
+                    navigate(redirectPath, { replace: true });
+                    
+                    // Fallback check for desktop
+                    setTimeout(() => {
+                      if (window.location.pathname === '/login') {
+                        console.log('Login: Desktop React Router failed after registration, using location.replace');
+                        window.location.replace(redirectPath);
+                      }
+                    }, 200);
+                  }
                 } catch (navError) {
-                  console.error('Login: React Router navigation failed after registration:', navError);
+                  console.error('Login: All navigation methods failed after registration:', navError);
                   window.location.replace(redirectPath);
                 }
               } catch (e) {
