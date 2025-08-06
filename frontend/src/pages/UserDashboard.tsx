@@ -63,6 +63,28 @@ const UserDashboard: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const loadTransactions = useCallback(async () => {
+    console.log('📊📊📊 loadTransactions function called 📊📊📊');
+    console.log('📊 Current user:', user);
+    console.log('📊 Current loading state:', loading);
+    console.log('📊 Token in localStorage:', localStorage.getItem('authToken') ? 'Present' : 'Missing');
+    
+    try {
+      console.log('📊 Starting transaction load...');
+      const response = await transactionAPI.getTransactions({ limit: 10 });
+      console.log('📊 Transactions response received:', response);
+      setTransactions(response.transactions);
+      console.log('📊 Transactions set to state:', response.transactions);
+    } catch (error: any) {
+      console.error('📊 Transaction loading error:', error);
+      console.error('📊 Error details:', error.response?.data);
+      toast.error('Failed to load transactions');
+    } finally {
+      setLoading(false);
+      console.log('📊 Loading set to false');
+    }
+  }, [user, loading]);
+
   const setupRealtimeListeners = useCallback(() => {
     // Listen for new transactions from admin
     socketService.on('transactionUpdate', (data: any) => {
@@ -76,7 +98,7 @@ const UserDashboard: React.FC = () => {
     socketService.on('accountStatusChange', (data: any) => {
       toast(data.message);
     });
-  }, [updateBalance]);
+  }, [updateBalance, loadTransactions]);
 
   useEffect(() => {
     console.log('🔥🔥🔥 UserDashboard useEffect TRIGGERED 🔥🔥🔥');
@@ -145,28 +167,6 @@ const UserDashboard: React.FC = () => {
     forceLoad();
     setupRealtimeListeners();
   }, [user, setupRealtimeListeners]);
-
-  const loadTransactions = async () => {
-    console.log('📊📊📊 loadTransactions function called 📊📊📊');
-    console.log('📊 Current user:', user);
-    console.log('📊 Current loading state:', loading);
-    console.log('📊 Token in localStorage:', localStorage.getItem('authToken') ? 'Present' : 'Missing');
-    
-    try {
-      console.log('📊 Starting transaction load...');
-      const response = await transactionAPI.getTransactions({ limit: 10 });
-      console.log('📊 Transactions response received:', response);
-      setTransactions(response.transactions);
-      console.log('📊 Transactions set to state:', response.transactions);
-    } catch (error: any) {
-      console.error('📊 Transaction loading error:', error);
-      console.error('📊 Error details:', error.response?.data);
-      toast.error('Failed to load transactions');
-    } finally {
-      setLoading(false);
-      console.log('📊 Loading set to false');
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
