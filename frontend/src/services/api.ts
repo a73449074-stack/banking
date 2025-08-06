@@ -2,6 +2,14 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+// Debug logging for API URL
+console.log('🔧 API Configuration:', {
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+  API_BASE_URL: API_BASE_URL,
+  NODE_ENV: process.env.NODE_ENV,
+  ALL_ENV_VARS: Object.keys(process.env).filter(key => key.startsWith('REACT_APP_'))
+});
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -110,8 +118,18 @@ export interface TransactionData {
 // Auth API
 export const authAPI = {
   login: async (data: LoginData) => {
-    const response = await api.post('/auth/login', data);
-    return response.data;
+    console.log('🔐 AuthAPI: Attempting login to:', API_BASE_URL + '/auth/login');
+    console.log('🔐 AuthAPI: Login data:', { email: data.email });
+    
+    try {
+      const response = await api.post('/auth/login', data);
+      console.log('🔐 AuthAPI: Login response received:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('🔐 AuthAPI: Login error:', error);
+      console.error('🔐 AuthAPI: Error details:', error.response?.data);
+      throw error;
+    }
   },
 
   register: async (data: RegisterData) => {
