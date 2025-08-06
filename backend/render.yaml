@@ -1,0 +1,18 @@
+# Render Deployment Configuration for SecureBank Backend
+services:
+  - type: web
+    name: securebank-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://ananymouse:KdBcXw4rhMevTyXi@cluster1.szqnvaf.mongodb.net/banking-app?retryWrites=true&w=majority&appName=Cluster1
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://securebank-frontend.vercel.app
+    healthCheckPath: /health

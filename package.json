@@ -1,0 +1,26 @@
+{
+  "name": "securebank-fullstack",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
+    "start": "cd backend && npm start",
+    "build": "cd frontend && npm run build",
+    "install-all": "concurrently \"cd backend && npm install\" \"cd frontend && npm install\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "banking",
+    "fullstack",
+    "react",
+    "nodejs",
+    "socketio",
+    "real-time"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Full-stack banking application with real-time cross-device functionality",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

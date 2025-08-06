@@ -1,0 +1,63 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start Banking App (Development)",
+			"type": "shell",
+			"command": "concurrently",
+			"args": [
+				"\"cd backend && npm run dev\"",
+				"\"cd frontend && npm start\""
+			],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start Backend Only",
+			"type": "shell",
+			"command": "npm",
+			"args": ["run", "dev"],
+			"options": {
+				"cwd": "${workspaceFolder}/backend"
+			},
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start Frontend Only",
+			"type": "shell",
+			"command": "npm",
+			"args": ["start"],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Install All Dependencies",
+			"type": "shell",
+			"command": "concurrently",
+			"args": [
+				"\"cd backend && npm install\"",
+				"\"cd frontend && npm install\""
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Build for Production",
+			"type": "shell",
+			"command": "npm",
+			"args": ["run", "build"],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"group": "build",
+			"problemMatcher": []
+		}
+	]
+}
