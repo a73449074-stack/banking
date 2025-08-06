@@ -34,6 +34,7 @@ api.interceptors.response.use(
       (error.response?.status === 503 || 
        error.response?.status === 504 || 
        error.code === 'ECONNREFUSED' ||
+       error.code === 'ERR_NETWORK' ||
        error.message.includes('Network Error')) && 
       !originalRequest._retry
     ) {
@@ -41,14 +42,36 @@ api.interceptors.response.use(
       
       // Show user-friendly message about backend waking up
       if (typeof window !== 'undefined') {
+        console.log('Backend is waking up, retrying request...');
         // Import toast dynamically to avoid SSR issues
         const { default: toast } = await import('react-hot-toast');
-        toast.loading('Backend is waking up, please wait...', { duration: 4000 });
+        toast.loading('Backend is waking up, please wait...', { 
+          id: 'backend-wakeup',
+          duration: 8000 
+        });
       }
       
-      // Wait for backend to wake up and retry
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      return api(originalRequest);
+      // Wait longer for backend to wake up and retry
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      try {
+        const retryResponse = await api(originalRequest);
+        // Dismiss the loading toast on success
+        if (typeof window !== 'undefined') {
+          const { default: toast } = await import('react-hot-toast');
+          toast.dismiss('backend-wakeup');
+          toast.success('Connected to backend!');
+        }
+        return retryResponse;
+      } catch (retryError) {
+        // If retry fails, show a more helpful error
+        if (typeof window !== 'undefined') {
+          const { default: toast } = await import('react-hot-toast');
+          toast.dismiss('backend-wakeup');
+          toast.error('Backend is still starting up. Please try again in a minute.');
+        }
+        return Promise.reject(retryError);
+      }
     }
     
     if (error.response?.status === 401) {

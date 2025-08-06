@@ -15,7 +15,23 @@ const server = http.createServer(app);
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      "http://localhost:3000",
+      "https://localhost:3000"
+    ];
+    
+    // Allow any vercel.app domain for deployment
+    if (origin.includes('.vercel.app') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
