@@ -66,7 +66,6 @@ const UserDashboard: React.FC = () => {
   const loadTransactions = useCallback(async () => {
     console.log('📊📊📊 loadTransactions function called 📊📊📊');
     console.log('📊 Current user:', user);
-    console.log('📊 Current loading state:', loading);
     console.log('📊 Token in localStorage:', localStorage.getItem('authToken') ? 'Present' : 'Missing');
     
     try {
@@ -79,11 +78,9 @@ const UserDashboard: React.FC = () => {
       console.error('📊 Transaction loading error:', error);
       console.error('📊 Error details:', error.response?.data);
       toast.error('Failed to load transactions');
-    } finally {
-      setLoading(false);
-      console.log('📊 Loading set to false');
     }
-  }, [user, loading]);
+    // Don't set loading to false here - let the useEffect handle it
+  }, [user]); // Removed 'loading' from dependencies to prevent infinite loop
 
   const setupRealtimeListeners = useCallback(() => {
     // Listen for new transactions from admin
@@ -102,50 +99,24 @@ const UserDashboard: React.FC = () => {
 
   useEffect(() => {
     console.log('🔥🔥🔥 UserDashboard useEffect TRIGGERED 🔥🔥🔥');
-    console.log('UserDashboard useEffect triggered');
     
-    // Debug authentication state
-    console.log('🔐 AUTH DEBUG: Current user:', user);
-    console.log('🔐 AUTH DEBUG: Token in localStorage:', localStorage.getItem('authToken'));
-    console.log('🔐 AUTH DEBUG: User object in localStorage:', localStorage.getItem('user'));
-    
-    // Decode JWT token to see what user it belongs to
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        const tokenData = JSON.parse(jsonPayload);
-        console.log('🔐 JWT TOKEN DECODED:', tokenData);
-        console.log('🔐 TOKEN BELONGS TO USER ID:', tokenData.userId);
-        console.log('🔐 CURRENT USER ID IN CONTEXT:', user?._id);
-      } catch (e) {
-        console.error('🔐 Failed to decode JWT token:', e);
-      }
+    if (!user) {
+      console.log('❌ No user found, skipping data load');
+      return;
     }
     
-    // Force immediate execution
-    const forceLoad = async () => {
-      console.log('🚀 FORCING TRANSACTION LOAD 🚀');
+    // Only load data once when component mounts or user changes
+    const loadInitialData = async () => {
+      console.log('� Loading initial data for user:', user.username);
+      setLoading(true);
+      
       try {
-        setLoading(true);
-        console.log('Making API call to /api/transactions...');
-        const response = await transactionAPI.getTransactions({ limit: 50 });
-        console.log('🚀 FORCED RESPONSE:', response);
-        
-        // Handle both response formats
-        const transactionData = response.transactions || response;
-        setTransactions(Array.isArray(transactionData) ? transactionData : []);
-        console.log('✅ Transactions set to state:', transactionData);
-        
+        const response = await transactionAPI.getTransactions({ limit: 10 });
+        console.log('✅ Initial transactions loaded:', response);
+        setTransactions(response.transactions || []);
       } catch (error) {
-        console.error('🚀 FORCED ERROR:', error);
-        console.error('🚀 ERROR RESPONSE:', (error as any).response?.data);
-        console.error('🚀 ERROR STATUS:', (error as any).response?.status);
-        // If API fails, show some demo data for testing
+        console.error('❌ Failed to load initial transactions:', error);
+        // Show demo data on error
         setTransactions([
           {
             _id: 'demo1',
@@ -164,9 +135,9 @@ const UserDashboard: React.FC = () => {
       }
     };
     
-    forceLoad();
+    loadInitialData();
     setupRealtimeListeners();
-  }, [user, setupRealtimeListeners]);
+  }, [user?.username, setupRealtimeListeners]); // Only depend on username to prevent loops
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

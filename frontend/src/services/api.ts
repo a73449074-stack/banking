@@ -29,7 +29,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    // Handle backend sleeping (503/504 errors or connection refused)
+    console.log('API Error:', {
+      status: error.response?.status,
+      code: error.code,
+      message: error.message,
+      url: originalRequest?.url,
+      retry: originalRequest._retry
+    });
+    
+    // Handle backend sleeping (503/504 errors or connection refused) - but only retry once
     if (
       (error.response?.status === 503 || 
        error.response?.status === 504 || 
@@ -40,18 +48,18 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       
+      console.log('Backend appears to be sleeping, attempting wake-up...');
+      
       // Show user-friendly message about backend waking up
       if (typeof window !== 'undefined') {
-        console.log('Backend is waking up, retrying request...');
-        // Import toast dynamically to avoid SSR issues
         const { default: toast } = await import('react-hot-toast');
         toast.loading('Backend is waking up, please wait...', { 
           id: 'backend-wakeup',
-          duration: 8000 
+          duration: 10000 
         });
       }
       
-      // Wait longer for backend to wake up and retry
+      // Wait for backend to wake up and retry ONCE
       await new Promise(resolve => setTimeout(resolve, 5000));
       
       try {
@@ -64,21 +72,27 @@ api.interceptors.response.use(
         }
         return retryResponse;
       } catch (retryError) {
-        // If retry fails, show a more helpful error
+        // If retry fails, show a more helpful error and DON'T retry again
+        console.error('Retry failed:', retryError);
         if (typeof window !== 'undefined') {
           const { default: toast } = await import('react-hot-toast');
           toast.dismiss('backend-wakeup');
-          toast.error('Backend is still starting up. Please try again in a minute.');
+          toast.error('Backend is still starting up. Please try again in a minute.', {
+            duration: 6000
+          });
         }
         return Promise.reject(retryError);
       }
     }
     
+    // Handle 401 unauthorized
     if (error.response?.status === 401) {
+      console.log('401 Unauthorized - clearing auth data');
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
     return Promise.reject(error);
   }
 );
