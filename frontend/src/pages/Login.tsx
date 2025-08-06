@@ -27,42 +27,19 @@ const Login: React.FC = () => {
   const { login, register, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Debug: Log authentication state changes
+  // Single useEffect to handle navigation when user is already authenticated
   React.useEffect(() => {
-    console.log('Login: Auth state changed - isAuthenticated:', isAuthenticated, 'user:', user);
-    if (isAuthenticated && user) {
-      console.log('Login: User is authenticated, navigating to dashboard');
+    console.log('Login: Checking if user is already authenticated - isAuthenticated:', isAuthenticated, 'user:', user);
+    
+    // Only navigate if user is already authenticated when component mounts
+    // This handles the case where user refreshes on login page while already logged in
+    if (isAuthenticated && user && !loading) {
+      console.log('Login: User already authenticated, redirecting...');
       const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
       console.log('Login: Redirecting to:', redirectPath);
       navigate(redirectPath, { replace: true });
     }
-  }, [isAuthenticated, user, navigate]);
-
-  // Additional check in case the auth state doesn't update properly
-  React.useEffect(() => {
-    const checkAuthState = () => {
-      const token = localStorage.getItem('authToken');
-      const userData = localStorage.getItem('user');
-      
-      if (token && userData && !user) {
-        console.log('Login: Found auth data in localStorage but context not updated');
-        try {
-          const parsedUser = JSON.parse(userData);
-          const redirectPath = parsedUser.role === 'admin' ? '/admin' : '/dashboard';
-          console.log('Login: Force redirecting to:', redirectPath);
-          navigate(redirectPath, { replace: true });
-        } catch (e) {
-          console.error('Login: Error parsing user data:', e);
-        }
-      }
-    };
-
-    // Check immediately and after a short delay
-    checkAuthState();
-    const timeout = setTimeout(checkAuthState, 1000);
-    
-    return () => clearTimeout(timeout);
-  }, [user, navigate]);
+  }, [isAuthenticated, user, loading, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -82,19 +59,31 @@ const Login: React.FC = () => {
         console.log('Login: Login result:', success);
         
         if (success) {
-          // Get the updated user from localStorage immediately after successful login
-          const userData = localStorage.getItem('user');
-          if (userData) {
-            try {
-              const user = JSON.parse(userData);
-              const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
-              console.log('Login: Immediate redirect to:', redirectPath, 'for user:', user.username);
-              navigate(redirectPath, { replace: true });
-              return; // Exit early to prevent further execution
-            } catch (e) {
-              console.error('Login: Error parsing user data for immediate redirect:', e);
+          console.log('Login: Login successful, preparing to navigate...');
+          
+          // Wait a brief moment for the auth context to update, then navigate
+          setTimeout(() => {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+              try {
+                const user = JSON.parse(userData);
+                const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
+                console.log('Login: Navigating to:', redirectPath, 'for user:', user.username);
+                
+                // Use window.location for more reliable navigation
+                window.location.href = redirectPath;
+              } catch (e) {
+                console.error('Login: Error parsing user data:', e);
+                // Fallback navigation
+                window.location.href = '/dashboard';
+              }
+            } else {
+              console.log('Login: No user data found, using fallback navigation');
+              window.location.href = '/dashboard';
             }
-          }
+          }, 100); // Small delay to ensure auth context is updated
+          
+          return; // Exit early to prevent setting loading to false
         } else {
           setError('Login failed - invalid credentials');
         }
@@ -109,19 +98,31 @@ const Login: React.FC = () => {
         console.log('Login: Registration result:', success);
         
         if (success) {
-          // Get the updated user from localStorage immediately after successful registration
-          const userData = localStorage.getItem('user');
-          if (userData) {
-            try {
-              const user = JSON.parse(userData);
-              const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
-              console.log('Login: Immediate redirect after registration to:', redirectPath, 'for user:', user.username);
-              navigate(redirectPath, { replace: true });
-              return; // Exit early to prevent further execution
-            } catch (e) {
-              console.error('Login: Error parsing user data for immediate redirect after registration:', e);
+          console.log('Login: Registration successful, preparing to navigate...');
+          
+          // Wait a brief moment for the auth context to update, then navigate
+          setTimeout(() => {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+              try {
+                const user = JSON.parse(userData);
+                const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
+                console.log('Login: Navigating after registration to:', redirectPath, 'for user:', user.username);
+                
+                // Use window.location for more reliable navigation
+                window.location.href = redirectPath;
+              } catch (e) {
+                console.error('Login: Error parsing user data after registration:', e);
+                // Fallback navigation
+                window.location.href = '/dashboard';
+              }
+            } else {
+              console.log('Login: No user data found after registration, using fallback navigation');
+              window.location.href = '/dashboard';
             }
-          }
+          }, 100); // Small delay to ensure auth context is updated
+          
+          return; // Exit early to prevent setting loading to false
         } else {
           setError('Registration failed');
         }
